@@ -1,5 +1,5 @@
 http:
-  https://localhost:9200/_cluster/health:
+  https://security-master:9200/_cluster/health:
     status: 200
     timeout: 2000
     allow-insecure: true

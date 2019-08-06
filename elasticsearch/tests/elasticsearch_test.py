@@ -152,6 +152,8 @@ def test_defaults():
     # Service
     s = r['service'][uname]
     assert s['metadata']['name'] == uname
+    assert s['metadata']['annotations'] == {}
+    assert s['spec']['type'] == 'ClusterIP'
     assert len(s['spec']['ports']) == 2
     assert s['spec']['ports'][0] == {
         'name': 'http', 'port': 9200, 'protocol': 'TCP'}
@@ -161,6 +163,7 @@ def test_defaults():
     # Headless Service
     h = r['service'][uname + '-headless']
     assert h['spec']['clusterIP'] == 'None'
+    assert h['spec']['publishNotReadyAddresses'] == True
     assert h['spec']['ports'][0]['name'] == 'http'
     assert h['spec']['ports'][0]['port'] == 9200
     assert h['spec']['ports'][1]['name'] == 'transport'
@@ -331,6 +334,23 @@ extraInitContainers: |
     extraInitContainer = r['statefulset'][uname]['spec']['template']['spec']['initContainers']
     assert {'name': 'do-something', 'image': 'busybox', 'command': ['do', 'something'], } in extraInitContainer
 
+def test_sysctl_init_container_disabled():
+    config = '''
+sysctlInitContainer:
+  enabled: false
+'''
+    r = helm_template(config)
+    initContainers = r['statefulset'][uname]['spec']['template']['spec']['initContainers']
+    assert initContainers is None
+
+def test_sysctl_init_container_enabled():
+    config = '''
+sysctlInitContainer:
+  enabled: true
+'''
+    r = helm_template(config)
+    initContainers = r['statefulset'][uname]['spec']['template']['spec']['initContainers']
+    assert initContainers[0]['name'] == 'configure-sysctl'
 
 def test_adding_storageclass_annotation_to_volumeclaimtemplate():
     config = '''
@@ -340,14 +360,27 @@ persistence:
 '''
     r = helm_template(config)
     annotations = r['statefulset'][uname]['spec']['volumeClaimTemplates'][0]['metadata']['annotations']
-    assert {'volume.beta.kubernetes.io/storage-class': 'id'} == annotations
+    assert annotations['volume.beta.kubernetes.io/storage-class'] == 'id'
+
+def test_adding_multiple_persistence_annotations():
+    config = '''
+    persistence:
+      annotations:
+        hello: world
+        world: hello
+    '''
+    r = helm_template(config)
+    annotations = r['statefulset'][uname]['spec']['volumeClaimTemplates'][0]['metadata']['annotations']
+
+    assert annotations['hello'] == 'world'
+    assert annotations['world'] == 'hello'
 
 
 def test_adding_a_secret_mount():
     config = '''
 secretMounts:
   - name: elastic-certificates
-    secretName: elastic-certificates
+    secretName: elastic-certs
     path: /usr/share/elasticsearch/config/certs
 '''
     r = helm_template(config)
@@ -359,7 +392,7 @@ secretMounts:
     assert s['volumes'] == [{
         'name': 'elastic-certificates',
         'secret': {
-            'secretName': 'elastic-certificates'
+            'secretName': 'elastic-certs'
         }
     }]
 
@@ -368,7 +401,7 @@ def test_adding_a_secret_mount_with_subpath():
     config = '''
 secretMounts:
   - name: elastic-certificates
-    secretName: elastic-certificates
+    secretName: elastic-certs
     path: /usr/share/elasticsearch/config/certs
     subPath: cert.crt
 '''
@@ -439,6 +472,31 @@ initResources:
         },
         'limits': {
             'cpu': '25m',
+            'memory': '128Mi'
+        }
+    }
+
+def test_adding_resources_to_sidecar_container():
+    config = '''
+masterTerminationFix: true
+sidecarResources:
+  limits:
+    cpu: "100m"
+    memory: "128Mi"
+  requests:
+    cpu: "100m"
+    memory: "128Mi"
+'''
+    r = helm_template(config)
+    i = r['statefulset'][uname]['spec']['template']['spec']['containers'][1]
+
+    assert i['resources'] == {
+        'requests': {
+            'cpu': '100m',
+            'memory': '128Mi'
+        },
+        'limits': {
+            'cpu': '100m',
             'memory': '128Mi'
         }
     }
@@ -581,3 +639,157 @@ schedulerName: "stork"
 '''
     r = helm_template(config)
     assert r['statefulset'][uname]['spec']['template']['spec']['schedulerName'] == "stork"
+
+
+def test_adding_a_nodePort():
+    config = ''
+
+    r = helm_template(config)
+
+    assert 'nodePort' not in r['service'][uname]['spec']['ports'][0]
+
+    config = '''
+    service:
+      nodePort: 30001
+    '''
+
+    r = helm_template(config)
+
+    assert r['service'][uname]['spec']['ports'][0]['nodePort'] == 30001
+
+def test_master_termination_fixed_enabled():
+    config = ''
+
+    r = helm_template(config)
+
+    assert len(r['statefulset'][uname]['spec']['template']['spec']['containers']) == 1
+
+    config = '''
+    masterTerminationFix: true
+    '''
+
+    r = helm_template(config)
+
+    c = r['statefulset'][uname]['spec']['template']['spec']['containers'][1]
+    assert c['name'] == 'elasticsearch-master-graceful-termination-handler'
+
+def test_lifecycle_hooks():
+    config = ''
+    r = helm_template(config)
+    c = r['statefulset'][uname]['spec']['template']['spec']['containers'][0]
+    assert 'lifecycle' not in c
+
+    config = '''
+    lifecycle:
+      preStop:
+        exec:
+          command: ["/bin/bash","/preStop"]
+    '''
+    r = helm_template(config)
+    c = r['statefulset'][uname]['spec']['template']['spec']['containers'][0]
+
+    assert c['lifecycle']['preStop']['exec']['command'] == ["/bin/bash","/preStop"]
+
+def test_esMajorVersion_detect_default_version():
+    config = ''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '7'
+
+def test_esMajorVersion_default_to_7_if_not_elastic_image():
+    config = '''
+    image: notElastic
+    imageTag: 1.0.0
+    '''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '7'
+
+def test_esMajorVersion_default_to_7_if_no_version_is_found():
+    config = '''
+    imageTag: not_a_number
+    '''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '7'
+
+def test_esMajorVersion_set_to_6_based_on_image_tag():
+    config = '''
+    imageTag: 6.8.1
+    '''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '6'
+
+def test_esMajorVersion_always_wins():
+    config = '''
+    esMajorVersion: 7
+    imageTag: 6.0.0
+    '''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '7'
+
+def test_esMajorVersion_parse_image_tag_for_oss_image():
+    config = '''
+    image: docker.elastic.co/elasticsearch/elasticsearch-oss
+    imageTag: 6.3.2
+    '''
+
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['annotations']['esMajorVersion'] == '6'
+
+def test_set_pod_security_context():
+    config = ''
+    r = helm_template(config)
+    assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['fsGroup'] == 1000
+
+    config = '''
+    podSecurityContext:
+      fsGroup: 1001
+      other: test
+    '''
+
+    r = helm_template(config)
+
+    assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['fsGroup'] == 1001
+    assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['other'] == 'test'
+
+def test_fsGroup_backwards_compatability():
+    config = '''
+    fsGroup: 1001
+    '''
+
+    r = helm_template(config)
+
+    assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['fsGroup'] == 1001
+
+def test_set_container_security_context():
+    config = ''
+
+    r = helm_template(config)
+    c = r['statefulset'][uname]['spec']['template']['spec']['containers'][0]
+    assert c['securityContext']['capabilities']['drop'] == ['ALL']
+    assert c['securityContext']['runAsNonRoot'] == True
+    assert c['securityContext']['runAsUser'] == 1000
+
+    config = '''
+    securityContext:
+      runAsUser: 1001
+      other: test
+    '''
+
+    r = helm_template(config)
+    c = r['statefulset'][uname]['spec']['template']['spec']['containers'][0]
+    assert c['securityContext']['capabilities']['drop'] == ['ALL']
+    assert c['securityContext']['runAsNonRoot'] == True
+    assert c['securityContext']['runAsUser'] == 1001
+    assert c['securityContext']['other'] == 'test'
+
+def test_adding_pod_labels():
+    config = '''
+labels:
+  app.kubernetes.io/name: elasticsearch
+'''
+    r = helm_template(config)
+    assert r['statefulset'][uname]['metadata']['labels']['app.kubernetes.io/name'] == 'elasticsearch'

@@ -137,7 +137,7 @@ filebeatConfig:
 
     d = r['daemonset'][name]['spec']['template']['spec']
 
-    assert {'configMap': {'name': name + '-config', 'defaultMode': 0600}, 'name': project + '-config'} in d['volumes']
+    assert {'configMap': {'name': name + '-config', 'defaultMode': 0o600}, 'name': project + '-config'} in d['volumes']
     assert {'mountPath': '/usr/share/filebeat/filebeat.yml', 'name': project + '-config', 'subPath': 'filebeat.yml', 'readOnly': True} in d['containers'][0]['volumeMounts']
     assert {'mountPath': '/usr/share/filebeat/other-config.yml', 'name': project + '-config', 'subPath': 'other-config.yml', 'readOnly': True} in d['containers'][0]['volumeMounts']
 
@@ -148,7 +148,7 @@ def test_adding_a_secret_mount():
     config = '''
 secretMounts:
   - name: elastic-certificates
-    secretName: elastic-certificates
+    secretName: elastic-certs
     path: /usr/share/filebeat/config/certs
 '''
     r = helm_template(config)
@@ -160,7 +160,7 @@ secretMounts:
     assert s['volumes'][0] == {
         'name': 'elastic-certificates',
         'secret': {
-            'secretName': 'elastic-certificates'
+            'secretName': 'elastic-certs'
         }
     }
 
@@ -180,3 +180,39 @@ extraVolumeMounts: |
     assert {'name': 'extras', 'emptyDir': {}} in extraVolume
     extraVolumeMounts = r['daemonset'][name]['spec']['template']['spec']['containers'][0]['volumeMounts']
     assert {'name': 'extras', 'mountPath': '/usr/share/extras', 'readOnly': True} in extraVolumeMounts
+
+def test_adding_pod_labels():
+    config = '''
+labels:
+  app.kubernetes.io/name: filebeat
+'''
+    r = helm_template(config)
+    assert r['daemonset'][name]['metadata']['labels']['app.kubernetes.io/name'] == 'filebeat'
+
+
+def test_adding_a_node_selector():
+    config = '''
+nodeSelector:
+  disktype: ssd
+'''
+    r = helm_template(config)
+    assert r['daemonset'][name]['spec']['template']['spec']['nodeSelector']['disktype'] == 'ssd'
+
+
+def test_adding_an_affinity_rule():
+    config = '''
+affinity:
+  podAntiAffinity:
+    requiredDuringSchedulingIgnoredDuringExecution:
+    - labelSelector:
+        matchExpressions:
+        - key: app
+          operator: In
+          values:
+          - filebeat
+      topologyKey: kubernetes.io/hostname
+'''
+
+    r = helm_template(config)
+    assert r['daemonset'][name]['spec']['template']['spec']['affinity']['podAntiAffinity'][
+        'requiredDuringSchedulingIgnoredDuringExecution'][0]['topologyKey'] == 'kubernetes.io/hostname'

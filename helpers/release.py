@@ -5,6 +5,11 @@ import os
 import subprocess
 import yaml
 
+try:
+    raw_input
+except NameError:  # Python 3
+    raw_input = input
+
 os.chdir(os.path.join(os.path.dirname(__file__), '..'))
 
 bucket = 'gs://' + os.environ['GCS_BUCKET']
@@ -24,6 +29,9 @@ for release in glob.glob('*/*.tgz'):
 
 for filepath in glob.iglob('*/Chart.yaml'):
     chart = os.path.split(os.path.dirname(filepath))[-1]
+
+    # Download dependencies
+    run(['helm', 'dependency', 'update', chart])
 
     # Package up the chart
     run(['helm', 'package', chart, '--destination', chart])

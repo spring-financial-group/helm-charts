@@ -31,6 +31,9 @@ def test_defaults():
     assert c['env'][0]['name'] == 'ELASTICSEARCH_HOSTS'
     assert c['env'][0]['value'] == elasticsearchHosts
 
+    assert c['env'][1]['name'] == 'SERVER_HOST'
+    assert c['env'][1]['value'] == '0.0.0.0'
+
     assert 'http "/app/kibana"' in c['readinessProbe']['exec']['command'][-1]
 
     # Empty customizable defaults
@@ -156,6 +159,34 @@ ingress:
     assert i['rules'][0]['http']['paths'][0]['backend']['serviceName'] == name
     assert i['rules'][0]['http']['paths'][0]['backend']['servicePort'] == 5601
 
+def test_adding_an_ingress_rule_wildcard():
+    config = '''
+ingress:
+  enabled: true
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  path: /
+  hosts:
+    - kibana.elastic.co
+  tls:
+  - secretName: elastic-co-wildcard
+    hosts:
+     - "*.elastic.co"
+'''
+
+    r = helm_template(config)
+    assert name in r['ingress']
+    i = r['ingress'][name]['spec']
+    assert i['tls'][0]['hosts'][0] == '*.elastic.co'
+    assert i['tls'][0]['secretName'] == 'elastic-co-wildcard'
+
+    assert i['rules'][0]['host'] == 'kibana.elastic.co'
+    assert i['rules'][0]['http']['paths'][0]['path'] == '/'
+    assert i['rules'][0]['http']['paths'][0]['backend']['serviceName'] == name
+    assert i['rules'][0]['http']['paths'][0]['backend']['servicePort'] == 5601
+
+
+
 def test_override_the_default_update_strategy():
     config = '''
 updateStrategy:
@@ -275,3 +306,91 @@ service:
     r = helm_template(config)
     s = r['service'][name]['metadata']['annotations']['service.beta.kubernetes.io/aws-load-balancer-internal']
     assert s == "0.0.0.0/0"
+
+def test_adding_a_nodePort():
+    config = ''
+
+    r = helm_template(config)
+
+    assert 'nodePort' not in r['service'][name]['spec']['ports'][0]
+
+    config = '''
+    service:
+      nodePort: 30001
+    '''
+
+    r = helm_template(config)
+
+    assert r['service'][name]['spec']['ports'][0]['nodePort'] == 30001
+
+def test_override_the_serverHost():
+    config = '''
+    serverHost: "localhost"
+    '''
+
+    r = helm_template(config)
+
+    c = r['deployment'][name]['spec']['template']['spec']['containers'][0]
+    assert c['env'][1]['name'] == 'SERVER_HOST'
+    assert c['env'][1]['value'] == 'localhost'
+
+def test_adding_pod_annotations():
+    config = '''
+podAnnotations:
+  iam.amazonaws.com/role: es-role
+'''
+    r = helm_template(config)
+    assert r['deployment'][name]['spec']['template']['metadata']['annotations']['iam.amazonaws.com/role'] == 'es-role'
+
+def test_override_imagePullPolicy():
+    config = ''
+
+    r = helm_template(config)
+    c = r['deployment'][name]['spec']['template']['spec']['containers'][0]
+    assert c['imagePullPolicy'] == 'IfNotPresent'
+
+    config = '''
+    imagePullPolicy: Always
+    '''
+
+    r = helm_template(config)
+    c = r['deployment'][name]['spec']['template']['spec']['containers'][0]
+    assert c['imagePullPolicy'] == 'Always'
+
+def test_adding_pod_labels():
+     config = '''
+labels:
+  app.kubernetes.io/name: kibana
+'''
+     r = helm_template(config)
+     assert r['deployment'][name]['metadata']['labels']['app.kubernetes.io/name'] == 'kibana'
+
+def test_adding_a_secret_mount_with_subpath():
+    config = '''
+secretMounts:
+  - name: elastic-certificates
+    secretName: elastic-certs
+    path: /usr/share/elasticsearch/config/certs
+    subPath: cert.crt
+'''
+    r = helm_template(config)
+    d = r['deployment'][name]['spec']['template']['spec']
+    assert d['containers'][0]['volumeMounts'][-1] == {
+        'mountPath': '/usr/share/elasticsearch/config/certs',
+        'subPath': 'cert.crt',
+        'name': 'elastic-certificates'
+    }
+
+def test_adding_a_secret_mount_without_subpath():
+    config = '''
+secretMounts:
+  - name: elastic-certificates
+    secretName: elastic-certs
+    path: /usr/share/elasticsearch/config/certs
+'''
+    r = helm_template(config)
+    d = r['deployment'][name]['spec']['template']['spec']
+    assert d['containers'][0]['volumeMounts'][-1] == {
+        'mountPath': '/usr/share/elasticsearch/config/certs',
+        'name': 'elastic-certificates'
+    }

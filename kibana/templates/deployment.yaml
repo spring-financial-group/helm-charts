@@ -5,6 +5,9 @@ metadata:
   labels:
     app: {{ .Chart.Name }}
     release: {{ .Release.Name | quote }}
+    {{- range $key, $value := .Values.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
 spec:
   replicas: {{ .Values.replicas }}
   strategy:
@@ -19,6 +22,9 @@ spec:
         app: kibana
         release: {{ .Release.Name | quote }}
       annotations:
+        {{- range $key, $value := .Values.podAnnotations }}
+        {{ $key }}: {{ $value | quote }}
+        {{- end }}
         {{/* This forces a restart if the configmap has changed */}}
         {{- if .Values.kibanaConfig }}
         configchecksum: {{ include (print .Template.BasePath "/configmap.yaml") . | sha256sum | trunc 63 }}
@@ -27,10 +33,8 @@ spec:
 {{- if .Values.priorityClassName }}
       priorityClassName: {{ .Values.priorityClassName }}
 {{- end }}
-{{- if .Values.podSecurityContext }}
       securityContext:
 {{ toYaml .Values.podSecurityContext | indent 8 }}
-{{- end }}
       {{- if .Values.serviceAccount }}
       serviceAccount: {{ .Values.serviceAccount }}
       {{- end }}
@@ -38,7 +42,7 @@ spec:
         {{- range .Values.secretMounts }}
         - name: {{ .name }}
           secret:
-            secretName: {{ .name }}
+            secretName: {{ .secretName }}
         {{- end }}
         {{- if .Values.kibanaConfig }}
         - name: kibanaconfig
@@ -63,7 +67,10 @@ spec:
     {{- end }}
       containers:
       - name: kibana
+        securityContext:
+{{ toYaml .Values.securityContext | indent 10 }}
         image: "{{ .Values.image }}:{{ .Values.imageTag }}"
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
         env:
           {{- if .Values.elasticsearchURL }}
           - name: ELASTICSEARCH_URL
@@ -72,13 +79,15 @@ spec:
           - name: ELASTICSEARCH_HOSTS
             value: "{{ .Values.elasticsearchHosts }}"
           {{- end }}
+          - name: SERVER_HOST
+            value: "{{ .Values.serverHost }}"
 {{- if .Values.extraEnvs }}
 {{ toYaml .Values.extraEnvs | indent 10 }}
 {{- end }}
         readinessProbe:
 {{ toYaml .Values.readinessProbe | indent 10 }}
           exec:
-            command: 
+            command:
               - sh
               - -c
               - |
@@ -93,7 +102,7 @@ spec:
 
                     curl -k "$@" "{{ .Values.protocol }}://localhost:{{ .Values.httpPort }}${path}"
                 }
-  
+
                 http "{{ .Values.healthCheckPath }}"
         ports:
         - containerPort: {{ .Values.httpPort }}
@@ -103,6 +112,9 @@ spec:
           {{- range .Values.secretMounts }}
           - name: {{ .name }}
             mountPath: {{ .path }}
+            {{- if .subPath }}
+            subPath: {{ .subPath }}
+            {{- end }}
           {{- end }}
           {{- range $path, $config := .Values.kibanaConfig }}
           - name: kibanaconfig
