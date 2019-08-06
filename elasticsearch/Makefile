@@ -2,6 +2,8 @@ default: setup
 
 include ../helpers/common.mk
 
+RELEASE := elastic-search
+
 setup: secrets install
 
 secrets:
