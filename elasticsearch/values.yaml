@@ -21,8 +21,8 @@ esMajorVersion: ""
 # Allows you to add any config files in /usr/share/elasticsearch/config/
 # such as elasticsearch.yml and log4j2.properties
 esConfig: {}
-#  elasticsearch.yml: |
-#    key:
+ elasticsearch.yml: |
+    xpack.security.enabled: true
 #      nestedkey: value
 #  log4j2.properties: |
 #    key = value
