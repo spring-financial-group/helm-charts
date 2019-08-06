@@ -1,5 +1,6 @@
-include ../helpers/common.mk
+default: secrets
 
+include ../helpers/common.mk
 
 secrets:
 	docker rm -f elastic-helm-charts-certs || true
