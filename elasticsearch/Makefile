@@ -1,6 +1,8 @@
-default: secrets
+default: setup
 
 include ../helpers/common.mk
+
+setup: secrets install
 
 secrets:
 	docker rm -f elastic-helm-charts-certs || true
@@ -18,3 +20,11 @@ secrets:
 	kubectl create secret generic elastic-certificate-pem --from-file=elastic-certificate.pem && \
 	kubectl create secret generic elastic-credentials  --from-literal=password=$$password --from-literal=username=elastic && \
 	rm -f elastic-certificates.p12 elastic-certificate.pem elastic-stack-ca.p12
+	
+
+install:
+	helm upgrade --wait --timeout=600 --install --values ./security.yml $(RELEASE) ../../ ; \
+	
+purge:
+	kubectl delete secrets elastic-credentials elastic-certificates elastic-certificate-pem || true
+	helm del --purge $(RELEASE)
