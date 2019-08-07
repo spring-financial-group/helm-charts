@@ -97,8 +97,6 @@ antiAffinityTopologyKey: "kubernetes.io/hostname"
 # and that they will never end up on the same node. Setting this to soft will do this "best effort"
 antiAffinity: "hard"
 
-httpPort: 5601
-
 # This is the max unavailable setting for the pod disruption budget
 # The default value of 1 will make sure that kubernetes won't allow more than 1
 # of your pods to be unavailable during maintenance
