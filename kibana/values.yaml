@@ -130,6 +130,8 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
+httpPort: 5601
+
 readinessProbe:
   failureThreshold: 3
   initialDelaySeconds: 10
