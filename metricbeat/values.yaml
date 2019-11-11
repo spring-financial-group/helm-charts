@@ -14,7 +14,8 @@ metricbeatConfig:
         - system
         - volume
       period: 10s
-      hosts: ["localhost:10255"]
+      host: "${NODE_NAME}"
+      hosts: ["${NODE_NAME}:10255"]
       processors:
       - add_kubernetes_metadata:
           in_cluster: true
@@ -57,7 +58,7 @@ metricbeatConfig:
         - state_pod
         - state_container
       period: 10s
-      hosts: ["${KUBE_STATE_METRICS_HOSTS:kube-state-metrics:8080}"]
+      hosts: ["${KUBE_STATE_METRICS_HOSTS}"]
     output.elasticsearch:
       hosts: '${ELASTICSEARCH_HOSTS:elasticsearch-master:9200}'
 
@@ -85,7 +86,7 @@ extraVolumes: ""
 hostPathRoot: /var/lib
 
 image: "docker.elastic.co/beats/metricbeat"
-imageTag: "7.3.0"
+imageTag: "7.4.1"
 imagePullPolicy: "IfNotPresent"
 imagePullSecrets: []
 
@@ -101,8 +102,28 @@ readinessProbe:
   periodSeconds: 10
   timeoutSeconds: 5
 
+# additionals labels
+labels: {}
+
 # Whether this chart should self-manage its service account, role, and associated role binding.
 managedServiceAccount: true
+
+clusterRoleRules:
+  - apiGroups:
+    - "extensions"
+    - "apps"
+    - ""
+    resources:
+    - namespaces
+    - pods
+    - events
+    - deployments
+    - nodes
+    - replicasets
+    verbs:
+    - get
+    - list
+    - watch
 
 podAnnotations: {}
   # iam.amazonaws.com/role: es-cluster

@@ -6,8 +6,11 @@ metadata:
   labels:
     heritage: {{ .Release.Service | quote }}
     release: {{ .Release.Name | quote }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    chart: "{{ .Chart.Name }}"
     app: "{{ template "uname" . }}"
+{{- if .Values.service.labels }}
+{{ toYaml .Values.service.labels | indent 4}}
+{{- end }}
   annotations:
 {{ toYaml .Values.service.annotations | indent 4 }}
 spec:
@@ -15,16 +18,16 @@ spec:
   selector:
     heritage: {{ .Release.Service | quote }}
     release: {{ .Release.Name | quote }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    chart: "{{ .Chart.Name }}"
     app: "{{ template "uname" . }}"
   ports:
-  - name: http
+  - name: {{ .Values.service.httpPortName | default "http" }}
     protocol: TCP
     port: {{ .Values.httpPort }}
 {{- if .Values.service.nodePort }}
     nodePort: {{ .Values.service.nodePort }}
 {{- end }}
-  - name: transport
+  - name: {{ .Values.service.transportPortName | default "transport" }}
     protocol: TCP
     port: {{ .Values.transportPort }}
 ---
@@ -35,8 +38,11 @@ metadata:
   labels:
     heritage: {{ .Release.Service | quote }}
     release: {{ .Release.Name | quote }}
-    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    chart: "{{ .Chart.Name }}"
     app: "{{ template "uname" . }}"
+{{- if .Values.service.labelsHeadless }}
+{{ toYaml .Values.service.labelsHeadless | indent 4 }}
+{{- end }}
   annotations:
     service.alpha.kubernetes.io/tolerate-unready-endpoints: "true"
 spec:
@@ -46,7 +52,7 @@ spec:
   selector:
     app: "{{ template "uname" . }}"
   ports:
-  - name: http
+  - name: {{ .Values.service.httpPortName | default "http" }}
     port: {{ .Values.httpPort }}
-  - name: transport
+  - name: {{ .Values.service.transportPortName | default "transport" }}
     port: {{ .Values.transportPort }}

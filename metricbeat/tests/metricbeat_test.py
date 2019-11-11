@@ -136,7 +136,7 @@ metricbeatConfig:
 
     d = r['daemonset'][name]['spec']['template']['spec']
 
-    assert {'configMap': {'name': name + '-config', 'defaultMode': 0600}, 'name': project + '-config'} in d['volumes']
+    assert {'configMap': {'name': name + '-config', 'defaultMode': 0o600}, 'name': project + '-config'} in d['volumes']
     assert {'mountPath': '/usr/share/metricbeat/metricbeat.yml', 'name': project + '-config', 'subPath': 'metricbeat.yml', 'readOnly': True} in d['containers'][0]['volumeMounts']
     assert {'mountPath': '/usr/share/metricbeat/other-config.yml', 'name': project + '-config', 'subPath': 'other-config.yml', 'readOnly': True} in d['containers'][0]['volumeMounts']
 
@@ -207,3 +207,35 @@ affinity:
     r = helm_template(config)
     assert r['daemonset'][name]['spec']['template']['spec']['affinity']['podAntiAffinity'][
         'requiredDuringSchedulingIgnoredDuringExecution'][0]['topologyKey'] == 'kubernetes.io/hostname'
+
+def test_cluster_role_rules():
+    config = ''
+    r = helm_template(config)
+    rules = r['clusterrole']['release-name-metricbeat-cluster-role']['rules'][0]
+    assert rules['apiGroups'][0] == 'extensions'
+    assert rules['verbs'][0]     == 'get'
+    assert rules['resources'][0] == 'namespaces'
+
+    config = '''
+clusterRoleRules:
+  - apiGroups:
+    - "someone"
+    verbs:
+    - "or"
+    resources:
+    - "something"
+'''
+    r = helm_template(config)
+    rules = r['clusterrole']['release-name-metricbeat-cluster-role']['rules'][0]
+    assert rules['apiGroups'][0] == 'someone'
+    assert rules['verbs'][0]     == 'or'
+    assert rules['resources'][0] == 'something'
+
+
+def test_adding_pod_labels():
+    config = '''
+labels:
+  app.kubernetes.io/name: metricbeat
+'''
+    r = helm_template(config)
+    assert r['daemonset'][name]['metadata']['labels']['app.kubernetes.io/name'] == 'metricbeat'

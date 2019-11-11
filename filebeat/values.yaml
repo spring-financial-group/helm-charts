@@ -34,7 +34,7 @@ extraVolumes: ""
 hostPathRoot: /var/lib
 
 image: "docker.elastic.co/beats/filebeat"
-imageTag: "7.3.0"
+imageTag: "7.4.1"
 imagePullPolicy: "IfNotPresent"
 imagePullSecrets: []
 
@@ -93,6 +93,10 @@ tolerations: []
 nodeSelector: {}
 
 affinity: {}
+
+# This is the PriorityClass settings as defined in
+# https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass
+priorityClassName: ""
 
 updateStrategy: RollingUpdate
 

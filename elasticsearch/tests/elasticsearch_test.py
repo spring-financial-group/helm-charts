@@ -142,7 +142,9 @@ def test_defaults():
 
     # Other
     assert r['statefulset'][uname]['spec']['template']['spec']['securityContext'] == {
-        'fsGroup': 1000}
+        'fsGroup': 1000,
+        'runAsUser': 1000
+    }
     assert r['statefulset'][uname]['spec']['template']['spec']['terminationGracePeriodSeconds'] == 120
 
     # Pod disruption budget
@@ -351,6 +353,19 @@ sysctlInitContainer:
     r = helm_template(config)
     initContainers = r['statefulset'][uname]['spec']['template']['spec']['initContainers']
     assert initContainers[0]['name'] == 'configure-sysctl'
+
+def test_sysctl_init_container_image():
+    config = '''
+image: customImage
+imageTag: 6.2.4
+imagePullPolicy: Never
+sysctlInitContainer:
+  enabled: true
+'''
+    r = helm_template(config)
+    initContainers = r['statefulset'][uname]['spec']['template']['spec']['initContainers']
+    assert initContainers[0]['image'] == 'customImage:6.2.4'
+    assert initContainers[0]['imagePullPolicy'] == 'Never'
 
 def test_adding_storageclass_annotation_to_volumeclaimtemplate():
     config = '''
@@ -657,6 +672,43 @@ def test_adding_a_nodePort():
 
     assert r['service'][uname]['spec']['ports'][0]['nodePort'] == 30001
 
+
+def test_adding_a_label_on_non_headless_service():
+    config = ''
+
+    r = helm_template(config)
+
+    assert 'label1' not in r['service'][uname]['metadata']['labels']
+    
+    config = '''
+    service:
+      labels:
+        label1: value1
+    '''
+
+    r = helm_template(config)
+
+    assert r['service'][uname]['metadata']['labels']['label1'] == 'value1'
+
+
+
+def test_adding_a_label_on_headless_service():
+    config = ''
+
+    r = helm_template(config)
+
+    assert 'label1' not in r['service'][uname + '-headless']['metadata']['labels']
+    
+    config = '''
+    service:
+      labelsHeadless:
+        label1: value1
+    '''
+
+    r = helm_template(config)
+
+    assert r['service'][uname + '-headless']['metadata']['labels']['label1'] == 'value1'
+
 def test_master_termination_fixed_enabled():
     config = ''
 
@@ -743,6 +795,7 @@ def test_set_pod_security_context():
     config = ''
     r = helm_template(config)
     assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['fsGroup'] == 1000
+    assert r['statefulset'][uname]['spec']['template']['spec']['securityContext']['runAsUser'] == 1000
 
     config = '''
     podSecurityContext:
@@ -793,3 +846,189 @@ labels:
 '''
     r = helm_template(config)
     assert r['statefulset'][uname]['metadata']['labels']['app.kubernetes.io/name'] == 'elasticsearch'
+
+def test_keystore_enable():
+    config = ''
+
+    r = helm_template(config)
+    s = r['statefulset'][uname]['spec']['template']['spec']
+
+    assert s['volumes'] == None
+
+    config = '''
+keystore:
+  - secretName: test
+    '''
+
+    r = helm_template(config)
+    s = r['statefulset'][uname]['spec']['template']['spec']
+
+    assert {'name': 'keystore', 'emptyDir': {}} in s['volumes']
+
+def test_keystore_init_container():
+    config = ''
+
+    r = helm_template(config)
+    i = r['statefulset'][uname]['spec']['template']['spec']['initContainers'][-1]
+
+    assert i['name'] != 'keystore'
+
+    config = '''
+keystore:
+  - secretName: test
+    '''
+
+    r = helm_template(config)
+    i = r['statefulset'][uname]['spec']['template']['spec']['initContainers'][-1]
+
+    assert i['name'] == 'keystore'
+
+def test_keystore_init_container_image():
+    config = '''
+image: customImage
+imageTag: 6.2.4
+imagePullPolicy: Never
+keystore:
+  - secretName: test
+'''
+    r = helm_template(config)
+    i = r['statefulset'][uname]['spec']['template']['spec']['initContainers'][-1]
+    assert i['image'] == 'customImage:6.2.4'
+    assert i['imagePullPolicy'] == 'Never'
+
+def test_keystore_mount():
+    config = '''
+keystore:
+  - secretName: test
+'''
+
+    r = helm_template(config)
+    s = r['statefulset'][uname]['spec']['template']['spec']
+    assert s['containers'][0]['volumeMounts'][-1] == {
+        'mountPath': '/usr/share/elasticsearch/config/elasticsearch.keystore',
+        'subPath': 'elasticsearch.keystore',
+        'name': 'keystore'
+    }
+
+def test_keystore_init_volume_mounts():
+    config = '''
+keystore:
+  - secretName: test
+  - secretName: test-with-custom-path
+    items:
+    - key: slack_url
+      path: xpack.notification.slack.account.otheraccount.secure_url
+'''
+    r = helm_template(config)
+    s = r['statefulset'][uname]['spec']['template']['spec']
+    assert s['initContainers'][-1]['volumeMounts'] == [
+            {
+              'mountPath': '/tmp/keystore',
+              'name': 'keystore'
+            },
+            {
+              'mountPath': '/tmp/keystoreSecrets/test',
+              'name': 'keystore-test'
+            },
+            {
+              'mountPath': '/tmp/keystoreSecrets/test-with-custom-path',
+              'name': 'keystore-test-with-custom-path'
+            }
+    ]
+
+def test_keystore_volumes():
+    config = '''
+keystore:
+  - secretName: test
+  - secretName: test-with-custom-path
+    items:
+    - key: slack_url
+      path: xpack.notification.slack.account.otheraccount.secure_url
+'''
+    r = helm_template(config)
+    s = r['statefulset'][uname]['spec']['template']['spec']
+
+    assert {
+             'name': 'keystore-test',
+             'secret': {
+                 'secretName': 'test'
+             }
+           } in s['volumes']
+
+    assert {
+             'name': 'keystore-test-with-custom-path',
+             'secret': {
+                 'secretName': 'test-with-custom-path',
+                 'items': [{
+                     'key': 'slack_url',
+                     'path': 'xpack.notification.slack.account.otheraccount.secure_url'
+                 }]
+             }
+           } in s['volumes']
+def test_pod_security_policy():
+    ## Make sure the default config is not creating any resources
+    config = ''
+    resources = ('role', 'rolebinding', 'serviceaccount', 'podsecuritypolicy')
+    r = helm_template(config)
+    for resource in resources:
+        assert resource not in r
+    assert 'serviceAccountName' not in r['statefulset'][uname]['spec']['template']['spec']
+
+    ## Make sure all the resources are created with default values
+    config = '''
+rbac:
+  create: true
+  serviceAccountName: ""
+
+podSecurityPolicy:
+  create: true
+  name: ""
+'''
+    r = helm_template(config)
+    for resource in resources:
+        assert resource in r
+    assert r['role'][uname]['rules'][0] == {"apiGroups": ["extensions"], "verbs": ["use"], "resources": ["podsecuritypolicies"], "resourceNames": [uname]}
+    assert r['rolebinding'][uname]['subjects'] == [{"kind": "ServiceAccount", "namespace": "default", "name": uname}]
+    assert r['rolebinding'][uname]['roleRef'] == {"apiGroup": "rbac.authorization.k8s.io", "kind": "Role", "name": uname}
+    assert r['statefulset'][uname]['spec']['template']['spec']['serviceAccountName'] == uname
+    psp_spec = r['podsecuritypolicy'][uname]['spec']
+    assert psp_spec['privileged'] is True
+
+
+def test_external_pod_security_policy():
+    ## Make sure we can use an externally defined pod security policy
+    config = '''
+rbac:
+  create: true
+  serviceAccountName: ""
+
+podSecurityPolicy:
+  create: false
+  name: "customPodSecurityPolicy"
+'''
+    resources = ('role', 'rolebinding')
+    r = helm_template(config)
+    for resource in resources:
+        assert resource in r
+
+    assert r['role'][uname]['rules'][0] == {"apiGroups": ["extensions"], "verbs": ["use"], "resources": ["podsecuritypolicies"], "resourceNames": ["customPodSecurityPolicy"]}
+
+
+def test_external_service_account():
+    ## Make sure we can use an externally defined service account
+    config = '''
+rbac:
+  create: false
+  serviceAccountName: "customServiceAccountName"
+
+podSecurityPolicy:
+  create: false
+  name: ""
+'''
+    resources = ('role', 'rolebinding', 'serviceaccount')
+    r = helm_template(config)
+
+    assert r['statefulset'][uname]['spec']['template']['spec']['serviceAccountName'] == "customServiceAccountName"
+    # When referencing an external service account we do not want any resources to be created.
+    for resource in resources:
+        assert resource not in r

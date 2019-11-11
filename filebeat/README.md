@@ -6,8 +6,8 @@ This helm chart is a lightweight way to configure and run our official [Filebeat
 
 ## Requirements
 
-* Kubernetes >= 1.8
-* [Helm](https://helm.sh/) >= 2.8.0
+* Kubernetes >= 1.9
+* [Helm](https://helm.sh/) >= 2.8.0 (see parent [README](../README.md) for more details)
 
 ## Usage notes and getting started
 * The default Filebeat configuration file for this chart is configured to use an Elasticsearch endpoint. Without any additional changes, Filebeat will send documents to the service URL that the Elasticsearch helm chart sets up by default. You may either set the `ELASTICSEARCH_HOSTS` environment variable in `extraEnvs` to override this endpoint or modify the default `filebeatConfig` to change this behavior.
@@ -30,14 +30,14 @@ This chart is tested with the latest supported versions. The currently tested ve
 
 | 6.x   | 7.x   |
 | ----- | ----- |
-| 6.8.1 | 7.3.0 |
+| 6.8.4 | 7.4.1 |
 
 Examples of installing older major versions can be found in the [examples](./examples) directory.
 
-While only the latest releases are tested, it is possible to easily install old or new releases by overriding the `imageTag`. To install version `7.3.0` of Filebeat it would look like this:
+While only the latest releases are tested, it is possible to easily install old or new releases by overriding the `imageTag`. To install version `7.4.1` of Filebeat it would look like this:
 
 ```
-helm install --name filebeat elastic/filebeat --set imageTag=7.3.0
+helm install --name filebeat elastic/filebeat --set imageTag=7.4.1
 ```
 
 
@@ -50,7 +50,7 @@ helm install --name filebeat elastic/filebeat --set imageTag=7.3.0
 | `extraVolumes`           | Templatable string of additional volumes to be passed to the `tpl` function                                                                                                                                                                                                 | `""`                                                                                                                      |
 | `hostPathRoot`           | Fully-qualified [hostPath](https://kubernetes.io/docs/concepts/storage/volumes/#hostpath) that will be used to persist Filebeat registry data                                                                                                                               | `/var/lib`                                                                                                                |
 | `image`                  | The Filebeat docker image                                                                                                                                                                                                                                                   | `docker.elastic.co/beats/filebeat`                                                                                        |
-| `imageTag`               | The Filebeat docker image tag                                                                                                                                                                                                                                               | `7.3.0`                                                                                                                   |
+| `imageTag`               | The Filebeat docker image tag                                                                                                                                                                                                                                               | `7.4.1`                                                                                                                   |
 | `imagePullPolicy`        | The Kubernetes [imagePullPolicy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) value                                                                                                                                                              | `IfNotPresent`                                                                                                            |
 | `imagePullSecrets`       | Configuration for [imagePullSecrets](https://kubernetes.io/docs/tasks/configure-pod-container/pull-image-private-registry/#create-a-pod-that-uses-your-secret) so that you can use a private registry for your image                                                        | `[]`                                                                                                                      |
 | `managedServiceAccount`  | Whether the `serviceAccount` should be managed by this helm chart. Set this to `false` in order to manage your own service account and related roles.                                                                                                                       | `true`                                                                                                                    |
@@ -66,6 +66,7 @@ helm install --name filebeat elastic/filebeat --set imageTag=7.3.0
 | `tolerations`            | Configurable [tolerations](https://kubernetes.io/docs/concepts/configuration/taint-and-toleration/)                                                                                                                                                                         | `[]`                                                                                                                      |
 | `nodeSelector`           | Configurable [nodeSelector](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#nodeselector)                                                                                                                                                                | `{}`                                                                                                                      |
 | `affinity`               | Configurable [affinity](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity)                                                                                                                                                      | `{}`                                                                                                                      |
+| `priorityClassName`      | The [name of the PriorityClass](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass). No default is supplied as the PriorityClass must be created first.                                                                               | `""`                                                                                                                      |
 | `updateStrategy`         | The [updateStrategy](https://kubernetes.io/docs/tasks/manage-daemon/update-daemon-set/#daemonset-update-strategy) for the `DaemonSet`. By default Kubernetes will kill and recreate pods on updates. Setting this to `OnDelete` will require that pods be deleted manually. | `RollingUpdate`                                                                                                           |
 
 ## Examples
