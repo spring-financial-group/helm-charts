@@ -6,7 +6,7 @@ This helm chart is a lightweight way to configure and run our official [Elastics
 
 ## Requirements
 
-* [Helm](https://helm.sh/) >= 2.8.0
+* [Helm](https://helm.sh/) >= 2.8.0 (see parent [README](../README.md) for more details)
 * Kubernetes >= 1.8
 * Minimum cluster requirements include the following to run this chart with default settings. All of these settings are configurable.
   * Three Kubernetes nodes to respect the default "hard" affinity settings
@@ -15,8 +15,7 @@ This helm chart is a lightweight way to configure and run our official [Elastics
 ## Usage notes and getting started
 
 * This repo includes a number of [example](./examples) configurations which can be used as a reference. They are also used in the automated testing of this chart
-* Automated testing of this chart is currently only run against GKE (Google Kubernetes Engine). If you are using a different Kubernetes provider you will likely need to adjust the `storageClassName` in the `volumeClaimTemplate`
-* The default storage class for GKE is `standard` which by default will give you `pd-ssd` type persistent volumes. This is network attached storage and will not perform as well as local storage. If you are using Kubernetes version 1.10 or greater you can use [Local PersistentVolumes](https://cloud.google.com/kubernetes-engine/docs/how-to/persistent-volumes/local-ssd) for increased performance
+* Automated testing of this chart is currently only run against GKE (Google Kubernetes Engine).
 * The chart deploys a statefulset and by default will do an automated rolling update of your cluster. It does this by waiting for the cluster health to become green after each instance is updated. If you prefer to update manually you can set [`updateStrategy: OnDelete`](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#on-delete)
 * It is important to verify that the JVM heap size in `esJavaOpts` and to set the CPU/Memory `resources` to something suitable for your cluster
 * To simplify chart and maintenance each set of node groups is deployed as a separate helm release. Take a look at the [multi](./examples/multi) example to get an idea for how this works. Without doing this it isn't possible to resize persistent volumes in a statefulset. By setting it up this way it makes it possible to add more nodes with a new storage size then drain the old ones. It also solves the problem of allowing the user to determine which node groups to update first when doing upgrades or changes.
@@ -43,14 +42,14 @@ This chart is tested with the latest supported versions. The currently tested ve
 
 | 6.x   | 7.x   |
 | ----- | ----- |
-| 6.8.1 | 7.3.0 |
+| 6.8.4 | 7.4.1 |
 
 Examples of installing older major versions can be found in the [examples](./examples) directory.
 
-While only the latest releases are tested, it is possible to easily install old or new releases by overriding the `imageTag`. To install version `7.3.0` of Elasticsearch it would look like this:
+While only the latest releases are tested, it is possible to easily install old or new releases by overriding the `imageTag`. To install version `7.4.1` of Elasticsearch it would look like this:
 
 ```
-helm install --name elasticsearch elastic/elasticsearch --set imageTag=7.3.0
+helm install --name elasticsearch elastic/elasticsearch --set imageTag=7.4.1
 ```
 
 ## Configuration
@@ -71,7 +70,7 @@ helm install --name elasticsearch elastic/elasticsearch --set imageTag=7.3.0
 | `extraInitContainers`         | Templatable string of additional init containers to be passed to the `tpl` function                                                                                                                                                                                                                                        | `""`                                                                                                                      |
 | `secretMounts`                | Allows you easily mount a secret as a file inside the statefulset. Useful for mounting certificates and other secrets. See [values.yaml](./values.yaml) for an example                                                                                                                                                     | `[]`                                                                                                                      |
 | `image`                       | The Elasticsearch docker image                                                                                                                                                                                                                                                                                             | `docker.elastic.co/elasticsearch/elasticsearch`                                                                           |
-| `imageTag`                    | The Elasticsearch docker image tag                                                                                                                                                                                                                                                                                         | `7.3.0`                                                                                                                   |
+| `imageTag`                    | The Elasticsearch docker image tag                                                                                                                                                                                                                                                                                         | `7.4.1`                                                                                                                   |
 | `imagePullPolicy`             | The Kubernetes [imagePullPolicy](https://kubernetes.io/docs/concepts/containers/images/#updating-images) value                                                                                                                                                                                                             | `IfNotPresent`                                                                                                            |
 | `podAnnotations`              | Configurable [annotations](https://kubernetes.io/docs/concepts/overview/working-with-objects/annotations/) applied to all Elasticsearch pods                                                                                                                                                                               | `{}`                                                                                                                      |
 | `labels`                      | Configurable [label](https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/) applied to all Elasticsearch pods                                                                                                                                                                                          | `{}`                                                                                                                      |
@@ -83,21 +82,25 @@ helm install --name elasticsearch elastic/elasticsearch --set imageTag=7.3.0
 | `volumeClaimTemplate`         | Configuration for the [volumeClaimTemplate for statefulsets](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#stable-storage). You will want to adjust the storage (default `30Gi`) and the `storageClassName` if you are using a different storage class                                            | `accessModes: [ "ReadWriteOnce" ]`<br>`resources.requests.storage: 30Gi`                                                  |
 | `persistence.annotations`     | Additional persistence annotations for the `volumeClaimTemplate`                                                                                                                                                                                                                                                           | `{}`                                                                                                                      |
 | `persistence.enabled`         | Enables a persistent volume for Elasticsearch data. Can be disabled for nodes that only have [roles](https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-node.html) which don't require persistent data.                                                                                               | `true`                                                                                                                    |
-| `priorityClassName`           | The [name of the PriorityClass](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass). No default is supplied as the PriorityClass must be created first.                                                                                                                              | ``                                                                                                                        |
+| `priorityClassName`           | The [name of the PriorityClass](https://kubernetes.io/docs/concepts/configuration/pod-priority-preemption/#priorityclass). No default is supplied as the PriorityClass must be created first.                                                                                                                              | `""`                                                                                                                      |
 | `antiAffinityTopologyKey`     | The [anti-affinity topology key](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). By default this will prevent multiple Elasticsearch nodes from running on the same Kubernetes node                                                                                        | `kubernetes.io/hostname`                                                                                                  |
 | `antiAffinity`                | Setting this to hard enforces the [anti-affinity rules](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity). If it is set to soft it will be done "best effort". Other values will be ignored.                                                                                  | `hard`                                                                                                                    |
 | `nodeAffinity`                | Value for the [node affinity settings](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#node-affinity-beta-feature)                                                                                                                                                                                      | `{}`                                                                                                                      |
 | `podManagementPolicy`         | By default Kubernetes [deploys statefulsets serially](https://kubernetes.io/docs/concepts/workloads/controllers/statefulset/#pod-management-policies). This deploys them in parallel so that they can discover eachother                                                                                                   | `Parallel`                                                                                                                |
 | `protocol`                    | The protocol that will be used for the readinessProbe. Change this to `https` if you have `xpack.security.http.ssl.enabled` set                                                                                                                                                                                            | `http`                                                                                                                    |
 | `httpPort`                    | The http port that Kubernetes will use for the healthchecks and the service. If you change this you will also need to set [http.port](https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-http.html#_settings) in `extraEnvs`                                                                          | `9200`                                                                                                                    |
-| `transportPort`               | The transport port that Kubernetes will use for the service. If you change this you will also need to set [transport port configuration](https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-transport.html#_transport_settings) in `extraEnvs`                                                        | `9300`                                                                                                                    |
+| `transportPort`               | The transport port that Kubernetes will use for the service. If you change this you will also need to set [transport port configuration](https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-transport.html#_transport_settings) in `extraEnvs`                                                        | `9300`                                                                                                                    |                     
+| `service.labels`              | Labels to be added to non-headless service                                                                                                                                                                                                                                                                                 | `{}`                                                                                                                      |
+| `service.labelsHeadless`      | Labels to be added to headless service                                                                                                                                                                                                                                                                                     | `{}`                                                                                                                      |
 | `service.type`                | Type of elasticsearch service. [Service Types](https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types)                                                                                                                                                                         | `ClusterIP`                                                                                                               |
 | `service.nodePort`            | Custom [nodePort](https://kubernetes.io/docs/concepts/services-networking/service/#nodeport) port that can be set if you are using `service.type: nodePort`.                                                                                                                                                               | ``                                                                                                                        |
 | `service.annotations`         | Annotations that Kubernetes will use for the service. This will configure load balancer if `service.type` is `LoadBalancer` [Annotations](https://kubernetes.io/docs/concepts/services-networking/service/#ssl-support-on-aws)                                                                                             | `{}`                                                                                                                      |
+| `service.httpPortName`        | The name of the http port within the service                                                                                                                                                                                                                                                                               | `http`                                                                                                                    |
+| `service.transportPortName`   | The name of the transport port within the service                                                                                                                                                                                                                                                                          | `transport`                                                                                                               |
 | `updateStrategy`              | The [updateStrategy](https://kubernetes.io/docs/tutorials/stateful-application/basic-stateful-set/#updating-statefulsets) for the statefulset. By default Kubernetes will wait for the cluster to be green after upgrading each pod. Setting this to `OnDelete` will allow you to manually delete each pod during upgrades | `RollingUpdate`                                                                                                           |
 | `maxUnavailable`              | The [maxUnavailable](https://kubernetes.io/docs/tasks/run-application/configure-pdb/#specifying-a-poddisruptionbudget) value for the pod disruption budget. By default this will prevent Kubernetes from having more than 1 unhealthy pod in the node group                                                                | `1`                                                                                                                       |
 | `fsGroup (DEPRECATED)`        | The Group ID (GID) for [securityContext.fsGroup](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/) so that the Elasticsearch user can read from the persistent volume                                                                                                                            | ``                                                                                                                        |
-| `podSecurityContext`          | Allows you to set the [securityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod) for the pod                                                                                                                                                         | `fsGroup: 1000`                                                                                                           |
+| `podSecurityContext`          | Allows you to set the [securityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-pod) for the pod                                                                                                                                                         | `fsGroup: 1000`<br>`runAsUser: 1000`                                                                                      |
 | `securityContext`             | Allows you to set the [securityContext](https://kubernetes.io/docs/tasks/configure-pod-container/security-context/#set-the-security-context-for-a-container) for the container                                                                                                                                             | `capabilities.drop:[ALL]`<br>`runAsNonRoot: true`<br>`runAsUser: 1000`                                                    |
 | `terminationGracePeriod`      | The [terminationGracePeriod](https://kubernetes.io/docs/concepts/workloads/pods/pod/#termination-of-pods) in seconds used when trying to stop the pod                                                                                                                                                                      | `120`                                                                                                                     |
 | `sysctlInitContainer.enabled` | Allows you to disable the sysctlInitContainer if you are setting vm.max_map_count with another method                                                                                                                                                                                                                      | `true`                                                                                                                    |
@@ -111,6 +114,9 @@ helm install --name elasticsearch elastic/elasticsearch --set imageTag=7.3.0
 | `schedulerName`               | Name of the [alternate scheduler](https://kubernetes.io/docs/tasks/administer-cluster/configure-multiple-schedulers/#specify-schedulers-for-pods)                                                                                                                                                                          | `nil`                                                                                                                     |
 | `masterTerminationFix`        | A workaround needed for Elasticsearch < 7.2 to prevent master status being lost during restarts [#63](https://github.com/elastic/helm-charts/issues/63)                                                                                                                                                                    | `false`                                                                                                                   |
 | `lifecycle`                   | Allows you to add lifecycle configuration. See [values.yaml](./values.yaml) for an example of the formatting.                                                                                                                                                                                                              | `{}`                                                                                                                      |
+| `keystore`                    | Allows you map Kubernetes secrets into the keystore. See the [config example](/elasticsearch/examples/config/values.yaml) and [how to use the keystore](#how-to-use-the-keystore)                                                                                                                                          | `[]`                                                                                                                      |
+| `rbac`                    | Configuration for creating a role, role binding and service account as part of this helm chart with `create: true`. Also can be used to reference an external service account with `serviceAccountName: "externalServiceAccountName"`.                                                                                             | `create: false`<br>`serviceAccountName: ""`                       |
+| `podSecurityPolicy`       | Configuration for create a pod security policy with minimal permissions to run this Helm chart with `create: true`. Also can be used to reference an external pod security policy with `name: "externalPodSecurityPolicy"`                                                                                                         | `create: false`<br>`name: ""`                                     |
 
 ## Try it out
 
@@ -171,18 +177,55 @@ There are a couple reasons we recommend this.
 
 #### How to use the keystore?
 
-1. Create a Kubernetes secret containing the [keystore](https://www.elastic.co/guide/en/elasticsearch/reference/current/secure-settings.html)
-   ```
-   $ kubectl create secret generic elasticsearch-keystore --from-file=./elasticsearch.keystore
-   ```
-2. Mount it into the container via `secretMounts`
-   ```
-   secretMounts:
-   - name: elasticsearch-keystore
-     secretName: elasticsearch-keystore
-     path: /usr/share/elasticsearch/config/elasticsearch.keystore
-     subPath: elasticsearch.keystore
-   ```
+
+##### Basic example
+
+Create the secret, the key name needs to be the keystore key path. In this example we will create a secret from a file and from a literal string.
+
+```
+kubectl create secret generic encryption_key --from-file=xpack.watcher.encryption_key=./watcher_encryption_key
+kubectl create secret generic slack_hook --from-literal=xpack.notification.slack.account.monitoring.secure_url='https://hooks.slack.com/services/asdasdasd/asdasdas/asdasd'
+```
+
+To add these secrets to the keystore:
+```
+keystore:
+  - secretName: encryption_key
+  - secretName: slack_hook
+```
+
+##### Multiple keys
+
+All keys in the secret will be added to the keystore. To create the previous example in one secret you could also do:
+
+```
+kubectl create secret generic keystore_secrets --from-file=xpack.watcher.encryption_key=./watcher_encryption_key --from-literal=xpack.notification.slack.account.monitoring.secure_url='https://hooks.slack.com/services/asdasdasd/asdasdas/asdasd'
+```
+
+```
+keystore:
+  - secretName: keystore_secrets
+```
+
+##### Custom paths and keys
+
+If you are using these secrets for other applications (besides the Elasticsearch keystore) then it is also possible to specify the keystore path and which keys you want to add. Everything specified under each `keystore` item will be passed through to the `volumeMounts` section for [mounting the secret](https://kubernetes.io/docs/concepts/configuration/secret/#using-secrets). In this example we will only add the `slack_hook` key from a secret that also has other keys. Our secret looks like this:
+
+```
+kubectl create secret generic slack_secrets --from-literal=slack_channel='#general' --from-literal=slack_hook='https://hooks.slack.com/services/asdasdasd/asdasdas/asdasd'
+```
+
+We only want to add the `slack_hook` key to the keystore at path `xpack.notification.slack.account.monitoring.secure_url`.
+
+```
+keystore:
+  - secretName: slack_secrets
+    items:
+    - key: slack_hook
+      path: xpack.notification.slack.account.monitoring.secure_url
+```
+
+You can also take a look at the [config example](/elasticsearch/examples/config/) which is used as part of the automated testing pipeline.
 
 #### How to enable snapshotting?
 
@@ -217,6 +260,15 @@ It is also possible to run this chart with the built in Kubernetes cluster that 
 
 ```
 cd examples/docker-for-mac
+make
+```
+
+#### KIND - Kubernetes
+
+It is also possible to run this chart using a Kubernetes [KIND (Kubernetes in Docker)](https://github.com/kubernetes-sigs/kind) cluster:
+
+```
+cd examples/kubernetes-kind
 make
 ```
 
