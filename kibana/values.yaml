@@ -125,7 +125,7 @@ ingress:
   path: /
   hosts:
     - kibana.jx.mqube.com
-  tls: []
+  tls:
     - secretName: tls-kibana
       hosts:
         - kibana.jx.mqube.com
