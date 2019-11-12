@@ -223,15 +223,16 @@ tolerations: []
 ingress:
   enabled: false
   annotations: {}
-    # kubernetes.io/ingress.class: nginx
-    # kubernetes.io/tls-acme: "true"
+     kubernetes.io/ingress.class: nginx
+     kubernetes.io/tls-acme: "true"
+     nginx.ingress.kubernetes.io/backend-protocol: "HTTPS"
   path: /
   hosts:
-    - chart-example.local
+    - elastic.jx.mqube.com
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+    - secretName: tls-elastic
+      hosts:
+        - elastic.jx.mqube.com
 
 nameOverride: ""
 fullnameOverride: ""
