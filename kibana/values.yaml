@@ -126,9 +126,9 @@ ingress:
   hosts:
     - kibana.jx.mqube.com
   tls: []
-  #  - secretName: chart-example-tls
-  #    hosts:
-  #      - chart-example.local
+    - secretName: tls-kibana
+      hosts:
+        - kibana.jx.mqube.com
 
 httpPort: 5601
 
