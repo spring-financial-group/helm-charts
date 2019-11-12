@@ -26,7 +26,7 @@ secrets:
 	
 
 install:
-	helm upgrade --wait --timeout=600 --install --values ./values.yaml $(RELEASE) ./ ; \
+	helm upgrade --namespace=jx --wait --timeout=600 --install --values ./values.yaml $(RELEASE) ./ ; \
 	
 purge:
 	kubectl delete secrets elastic-credentials elastic-certificates elastic-certificate-pem || true
