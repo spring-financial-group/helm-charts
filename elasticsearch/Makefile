@@ -19,9 +19,9 @@ secrets:
 	docker cp elastic-helm-charts-certs:/app/elastic-certificates.p12 ./ && \
 	docker rm -f elastic-helm-charts-certs && \
 	openssl pkcs12 -nodes -passin pass:'' -in elastic-certificates.p12 -out elastic-certificate.pem && \
-	kubectl create secret generic elastic-certificates --from-file=elastic-certificates.p12 && \
-	kubectl create secret generic elastic-certificate-pem --from-file=elastic-certificate.pem && \
-	kubectl create secret generic elastic-credentials  --from-literal=password=$$password --from-literal=username=elastic && \
+	kubectl create secret generic elastic-certificates --from-file=elastic-certificates.p12 --namespace jx && \
+	kubectl create secret generic elastic-certificate-pem --from-file=elastic-certificate.pem --namespace jx && \
+	kubectl create secret generic elastic-credentials  --from-literal=password=$$password --from-literal=username=elastic --namespace jx && \
 	rm -f elastic-certificates.p12 elastic-certificate.pem elastic-stack-ca.p12
 	
 
@@ -29,5 +29,5 @@ install:
 	helm upgrade --namespace=jx --wait --timeout=600 --install --values ./values.yaml $(RELEASE) ./ ; \
 	
 purge:
-	kubectl delete secrets elastic-credentials elastic-certificates elastic-certificate-pem || true
+	kubectl delete secrets --namespace jx elastic-credentials elastic-certificates elastic-certificate-pem || true
 	helm del --purge $(RELEASE)
