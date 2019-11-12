@@ -228,7 +228,7 @@ ingress:
   path: /
   hosts:
     - elastic.jx.mqube.com
-  tls: []
+  tls:
     - secretName: tls-elastic
       hosts:
         - elastic.jx.mqube.com
