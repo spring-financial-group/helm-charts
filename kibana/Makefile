@@ -2,7 +2,7 @@ default: setup
 include ../helpers/common.mk
 
 RELEASE := elasticsearch-kibana
-STACK_VERSION := 7.3.0
+STACK_VERSION := 7.4.1
 
 setup: secrets install
 
