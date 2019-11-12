@@ -5,7 +5,7 @@ include ../helpers/common.mk
 RELEASE := elastic-search
 STACK_VERSION := 7.4.1
 
-setup: secrets install
+setup: purge secrets install
 
 secrets:
 	docker rm -f elastic-helm-charts-certs || true
