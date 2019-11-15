@@ -1,7 +1,5 @@
 default: setup
 
-include ../helpers/common.mk
-
 RELEASE := fluentd
 STACK_VERSION := 1.0.0
 
