@@ -162,6 +162,22 @@ data:
       @type kubernetes_metadata
     </filter>
 
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
+          pattern kube-probe\/\d+(\.\d{1,2})?
+      </exclude>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
+          pattern AMQ224088
+      </exclude>
+    </filter>
+
     <match kubernetes.**>
       @type rewrite_tag_filter
       <rule>
