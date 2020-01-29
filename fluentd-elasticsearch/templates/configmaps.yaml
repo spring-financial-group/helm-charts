@@ -506,6 +506,8 @@ data:
       logstash_format true
       logstash_prefix ${tag}
       reconnect_on_error true
+      reload_on_failure true
+      reload_connections false
       request_timeout 2147483647
       <buffer>
         @type file
