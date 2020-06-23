@@ -38,13 +38,11 @@ hostLogDir:
 ## Configure resource requests and limits
 ## ref: http://kubernetes.io/docs/user-guide/compute-resources/
 ##
-resources: {}
-  # limits:
-  #   cpu: 100m
-  #   memory: 500Mi
-  # requests:
-  #   cpu: 100m
-  #   memory: 200Mi
+resources:
+  limits:
+    memory: 500Mi
+  requests:
+    memory: 200Mi
 
 elasticsearch:
   auth:
