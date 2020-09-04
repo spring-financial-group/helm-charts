@@ -174,6 +174,22 @@ data:
       @type grep
       <exclude>
           key log
+          pattern \/health
+      </exclude>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
+          pattern Did not receive identification string from
+      </exclude>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
           pattern AMQ224088
       </exclude>
     </filter>
@@ -514,14 +530,13 @@ data:
         path /var/log/fluentd-buffers/kubernetes.system.buffer
         flush_mode interval
         retry_type exponential_backoff
-        total_limit_size 450MB
+        total_limit_size 384MB
         chunk_limit_size 16MB
         flush_thread_count 8
-        flush_interval 5s
+        flush_interval 3s
         retry_timeout 1h
         retry_max_interval 30
-        chunk_limit_size "#{ENV['OUTPUT_BUFFER_CHUNK_LIMIT']}"
-        queue_limit_length "#{ENV['OUTPUT_BUFFER_QUEUE_LIMIT']}"
+        queue_limit_length 8
         overflow_action block
         overflow_action drop_oldest_chunk
       </buffer>

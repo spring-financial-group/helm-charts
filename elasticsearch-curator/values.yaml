@@ -65,8 +65,8 @@ configMaps:
           source: name
           direction: older
           timestring: '%Y.%m.%d'
-          unit: months
-          unit_count: 1
+          unit: days
+          unit_count: 14
           field:
           stats_result:
           epoch:
