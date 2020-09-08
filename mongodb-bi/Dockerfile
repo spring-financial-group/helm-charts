@@ -8,4 +8,4 @@ WORKDIR /home/mongobi/mongodb-bi-linux-x86_64-debian92-v2.14.0
 RUN install -m755 bin/mongo* /usr/local/bin/
 EXPOSE 3307
 RUN service rsyslog start
-CMD sh -c "mongosqld --mongo-uri mongodb://$MONGODB_HOST:$MONGODB_PORT/?connect=direct --auth --mongo-username $MONGODB_USERNAME --mongo-password $MONGODB_PASSWORD --addr 0.0.0.0:3307"
+CMD sh -c "mongosqld --mongo-uri mongodb://$MONGODB_HOST:$MONGODB_PORT/?connect=direct --auth --mongo-username $MONGODB_USERNAME --mongo-password $MONGODB_PASSWORD --schemaMode auto --schemaSource bi-schema --schemaRefreshIntervalSecs 3600 --addr 0.0.0.0:3307"

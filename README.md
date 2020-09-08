@@ -1,8 +1,22 @@
 # Elastic Stack Kubernetes Helm Charts
 
-[![Build Status](https://img.shields.io/jenkins/s/https/devops-ci.elastic.co/job/elastic+helm-charts+master.svg)](https://devops-ci.elastic.co/job/elastic+helm-charts+master/)
+<br/>
 
-This functionality is in beta and is subject to change. The design and code is less mature than official GA features and is being provided as-is with no warranties. Beta features are not subject to the support SLA of official GA features.
+## M:QUBE configuration changes
+
+Parameter |  Default
+--------- | --------
+**definitions.policies** | 
+**rabbitmqMemoryHighWatermark** | 256MB
+**rabbitmqHipeCompile** | false
+**service.type** | ClusterIP 
+**resources** | {}
+**prometheus.enabled** | false
+**prometheus.resources** | {}
+**prometheus.operator.enabled** | true
+**prometheus.operator.alerts.enabled** | true
+
+<br/>
 
 ## Charts
 

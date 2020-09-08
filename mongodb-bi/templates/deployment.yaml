@@ -28,6 +28,16 @@ spec:
             - name: http
               containerPort: 3307
               protocol: TCP
+          readinessProbe:
+            tcpSocket:
+              port: 3307
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            tcpSocket:
+              port: 3307
+            initialDelaySeconds: 15
+            periodSeconds: 20
           resources:
             {{- toYaml .Values.resources | nindent 12 }}
           env:

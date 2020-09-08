@@ -194,6 +194,22 @@ data:
       </exclude>
     </filter>
 
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
+          pattern I NETWORK
+      </exclude>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <exclude>
+          key log
+          pattern ERROR 1043 \(08S01\)
+      </exclude>
+    </filter>
+
     <filter kubernetes.var.log.containers.**>
       @type parser
       <parse>

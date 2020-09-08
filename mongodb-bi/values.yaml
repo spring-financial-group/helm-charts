@@ -6,7 +6,7 @@ replicaCount: 1
 
 image:
   repository: docker.pkg.github.com/spring-financial-group/helm-charts/mongodb-bi
-  tag: latest
+  tag: 1.0.9
   pullPolicy: Always
 
 imagePullSecrets:

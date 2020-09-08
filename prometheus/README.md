@@ -1,6 +1,23 @@
 # Prometheus
 
-[Prometheus](https://prometheus.io/), a [Cloud Native Computing Foundation](https://cncf.io/) project, is a systems and service monitoring system. It collects metrics from configured targets at given intervals, evaluates rule expressions, displays the results, and can trigger alerts if some condition is observed to be true.
+[Prometheus](https://prometheus.io/), a [Cloud Native Computing Foundation](https://cncf.io/) project, is a systems and service monitoring system. It collects metrics from configured targets at given intervals, evaluates rule expressions, displays the results, and can trigger alerts if some condition is observed to be true.  
+
+<br/>
+
+## M:QUBE configuration changes
+
+Parameter |  Default
+--------- | --------
+**alertmanager.size** | 2Gb
+**alertmanager.resources** | {}
+**nodeExporter.resources** | {}
+**server.scrape_interval** | 1m 
+**server.persistentVolume.size** | 8Gb
+**server.resources** | {}
+**pushgateway.resources** | {}
+**pushgateway.persistentVolume.size** | 2Gi 
+
+<br/>
 
 ## TL;DR;
 

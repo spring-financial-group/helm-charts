@@ -2,6 +2,19 @@
 
 * Installs the web dashboarding system [Grafana](http://grafana.org/)
 
+<br/>
+
+## M:QUBE configuration changes
+
+Parameter |  Default
+--------- | --------
+**ingress.enabled** | false 
+**ingress.hosts** | chart-example.local
+**ingress.tls** | []
+**resources** | {}
+
+<br/>
+
 ## TL;DR;
 
 ```console
