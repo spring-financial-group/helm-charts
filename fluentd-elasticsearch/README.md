@@ -2,6 +2,21 @@
 
 -   Installs [Fluentd](https://www.fluentd.org/) log forwarder.
 
+<br/>
+
+## M:QUBE configuration changes
+
+See **values.yaml**, moslty resources and elasticsearch connection.
+
+<br/>
+
+
+## Filters
+
+To add more filters to exclude some of the logs, go to the **templates/configmaps.yaml** find **containers.input.conf** configuration section and replicate behavior of any `<filter/>` section with `<exclude/>` inside - for in-depth knowledge please check this [link](https://docs.fluentd.org/filter/grep)
+
+<br/>
+
 ## TL;DR;
 
 ```console
