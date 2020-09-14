@@ -375,8 +375,8 @@ resources:
     cpu: 1
     memory: 2Gi
   requests:
-    cpu: 100m
-    memory: 256Mi
+    cpu: 10m
+    memory: 128Mi
 initContainer:
   enabled: true
   securityContext:
@@ -405,7 +405,7 @@ extraContainers: []
 
 ## Data Persistency
 persistentVolume:
-  enabled: false
+  enabled: true
   ## If defined, storageClassName: <storageClass>
   ## If set to "-", storageClassName: "", which disables dynamic provisioning
   ## If undefined (the default) or set to null, no storageClassName spec is
@@ -418,7 +418,7 @@ persistentVolume:
   name: data
   accessModes:
     - ReadWriteOnce
-  size: 8Gi
+  size: 10Gi
   annotations: {}
   labels: {}
 
@@ -552,11 +552,11 @@ prometheus:
     ## Allow overriding of container resources
     resources:
      limits:
-       cpu: 100m
-       memory: 256Mi
+       cpu: 50m
+       memory: 64Mi
      requests:
-       cpu: 100m
-       memory: 100Mi
+       cpu: 10m
+       memory: 8Mi
 
   ## Prometheus is using Operator.  Setting to true will create Operator specific resources like ServiceMonitors and Alerts
   operator:
