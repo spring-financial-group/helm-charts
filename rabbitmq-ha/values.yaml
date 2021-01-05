@@ -28,6 +28,7 @@ extraPlugins: |
   rabbitmq_shovel_management,
   rabbitmq_federation,
   rabbitmq_federation_management,
+  rabbitmq_delayed_message_exchange,
 
 definitions:
   globalParameters: |-
@@ -117,6 +118,45 @@ definitions:
         "ha-sync-mode": "automatic",
         "ha-sync-batch-size": 5000
       }
+    },
+    {
+      "name": "mqube.amq.dlx",
+      "pattern": ".*[R,r][P,p][C,c].*",
+      "vhost": "/",
+      "apply-to" : "queues",
+      "definition": {
+        "dead-letter-exchange":"mqube.amq.dlx",
+        "ha-mode": "exactly",
+        "ha-params": 2,
+        "ha-sync-mode": "automatic",
+        "ha-sync-batch-size": 5000
+      }
+    },
+    {
+      "name": "mqube.amq.delayed",
+      "pattern": "[M,m][Q,q]ube.*\.(?!RPC)",
+      "vhost": "/",
+      "apply-to" : "queues",
+      "definition": {
+        "dead-letter-exchange":"mqube.amq.delayed",
+        "ha-mode": "exactly",
+        "ha-params": 2,
+        "ha-sync-mode": "automatic",
+        "ha-sync-batch-size": 5000
+      }
+    },
+    {
+      "name": "dlx.expiration",
+      "pattern": "Infrastructure.DeadLetter",
+      "vhost": "/",
+      "apply-to" : "queues",
+      "definition": {
+        "message-ttl": 86400000,
+        "ha-mode": "exactly",
+        "ha-params": 2,
+        "ha-sync-mode": "automatic",
+        "ha-sync-batch-size": 5000
+      }
     }
 
 ## Ref: https://www.rabbitmq.com/rabbitmqctl.8.html#force_boot
@@ -135,7 +175,7 @@ rabbitmqVhost: "/"
 ## RabbitMQ Memory high watermark
 ## Ref: http://www.rabbitmq.com/memory.html
 ##
-rabbitmqMemoryHighWatermark: 1850MiB
+rabbitmqMemoryHighWatermark: 900MiB
 rabbitmqMemoryHighWatermarkType: absolute
 
 ## EPMD port for peer discovery service used by RabbitMQ nodes and CLI tools
@@ -169,10 +209,17 @@ rabbitmqCert:
   keyfile: |
 
 ## Extra volumes for statefulset
-extraVolumes: []
+extraVolumes:
+  - name: plugins
+    configMap:
+      name: rmq-rabbitmq-extra
 
 ## Extra volume mounts for statefulset
-extraVolumeMounts: []
+extraVolumeMounts:
+  - name: plugins
+    readOnly: true
+    mountPath: /opt/rabbitmq/plugins/rabbitmq_delayed_message_exchange-3.8.9-0199d11c.ez
+    subPath: rabbitmq_delayed_message_exchange-3.8.9-0199d11c.ez
 
 ## Authentication mechanism
 ## Ref: http://www.rabbitmq.com/authentication.html
@@ -305,7 +352,7 @@ replicaCount: 3
 
 image:
   repository: rabbitmq
-  tag: 3.8.7-alpine
+  tag: 3.8.8-alpine
   pullPolicy: IfNotPresent
   ## Optionally specify an array of imagePullSecrets.
   ## Secrets must be manually created in the namespace.
@@ -373,7 +420,7 @@ updateStrategy: OnDelete
 resources:
   limits:
     cpu: 1
-    memory: 2Gi
+    memory: 1Gi
   requests:
     cpu: 10m
     memory: 128Mi

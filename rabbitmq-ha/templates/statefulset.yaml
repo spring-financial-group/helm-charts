@@ -164,10 +164,6 @@ spec:
               protocol: TCP
               containerPort: {{ .Values.rabbitmqPrometheusPlugin.port }}
             {{- end }}
-          livenessProbe:
-            {{- toYaml .Values.livenessProbe | trim | nindent 12 }}
-          readinessProbe:
-            {{- toYaml .Values.readinessProbe | trim | nindent 12 }}
           {{- if .Values.lifecycle }}
           lifecycle:
             {{- toYaml .Values.lifecycle | trim | nindent 12 }}
